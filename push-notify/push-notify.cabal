@@ -1,5 +1,5 @@
 name:                push-notify
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:            A server-side library for sending push notifications.
 description:         This library offers a simple abstraction for sending notifications through APNS, GCM and MPNS.
                      .
@@ -16,20 +16,17 @@ category:            Network, Cloud, Mobile
 build-type:          Simple
 cabal-version:       >=1.8
 
+
 library
   exposed-modules:   Network.PushNotify.Gcm
                    , Network.PushNotify.Gcm.Types
                    , Network.PushNotify.Apns
-                   , Network.PushNotify.Mpns
 
   other-modules:     Network.PushNotify.Gcm.Constants
                    , Network.PushNotify.Gcm.Send
                    , Network.PushNotify.Apns.Constants
                    , Network.PushNotify.Apns.Send
                    , Network.PushNotify.Apns.Types
-                   , Network.PushNotify.Mpns.Constants
-                   , Network.PushNotify.Mpns.Send
-                   , Network.PushNotify.Mpns.Types
 
   build-depends:     base                 >=4.5  && <5
                    , aeson                >=0.6
@@ -53,12 +50,11 @@ library
                    , mtl                  >=2.1
                    , network              >=2.4
                    , resourcet            >=0.4
-                   , retry                >=0.3
+                   , retry                >=0.3 && < 0.5
                    , stm                  >=2.4
                    , text                 >=0.11
                    , time                 >=1.4
-                   , tls                  >=1.1
-                   , tls-extra            >=0.6
+                   , tls                  >=1.2
                    , transformers         >=0.3
                    , unordered-containers >=0.2
                    , xml-conduit          >=1.1

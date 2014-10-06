@@ -19,7 +19,7 @@ module Network.PushNotify.Apns.Types
     ) where
 
 import Network.PushNotify.Apns.Constants
-import Network.TLS                          (PrivateKey)
+import Network.TLS                          (Credential)
 import Control.Concurrent
 import Control.Concurrent.STM.TChan
 import Control.Monad.Writer
@@ -43,8 +43,7 @@ data Env = Development -- ^ Development environment (by Apple).
 --
 -- For loading the certificate and privateKey you can use: 'Network.TLS.Extra.fileReadCertificate' and 'Network.TLS.Extra.fileReadPrivateKey' .
 data APNSConfig = APNSConfig
-    {   apnsCertificate   :: X509          -- ^ Certificate provided by Apple.
-    ,   apnsPrivateKey    :: PrivateKey    -- ^ Private key provided by Apple.
+    {   apnsCredential   :: Credential -- ^ Credentials provided by Apple.
     ,   environment       :: Env           -- ^ One of the possible environments.
     ,   timeoutLimit      :: Int           -- ^ The time to wait for a server response. (microseconds)
     ,   apnsRetrySettings :: RetrySettings -- ^ How to retry to connect to APNS servers.
@@ -52,8 +51,7 @@ data APNSConfig = APNSConfig
 
 instance Default APNSConfig where
     def = APNSConfig {
-        apnsCertificate   = undefined
-    ,   apnsPrivateKey    = undefined
+        apnsCredential    = undefined
     ,   environment       = Development
     ,   timeoutLimit      = 200000
     ,   apnsRetrySettings = RetrySettings {

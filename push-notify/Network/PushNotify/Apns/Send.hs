@@ -20,7 +20,6 @@ import Control.Concurrent.Async
 import Control.Concurrent.STM.TChan
 import Control.Monad.STM
 import Control.Retry
-import Data.Certificate.X509            (X509)
 import Data.Convertible                 (convert)
 import Data.Default
 import Data.Int
@@ -38,25 +37,33 @@ import qualified Data.HashMap.Strict    as HM
 import qualified Control.Exception      as CE
 import qualified Crypto.Random.AESCtr   as RNG
 import Network
-import Network.Socket.Internal          (PortNumber(PortNum))
 import Network.TLS
 import Network.TLS.Extra                (ciphersuite_all)
 import System.Timeout
 
-connParams :: X509 -> PrivateKey -> Params
-connParams cert privateKey = defaultParamsClient{
-                     pConnectVersion    = TLS11
-                   , pAllowedVersions   = [TLS10,TLS11,TLS12]
-                   , pCiphers           = ciphersuite_all
-                   , pCertificates      = [(cert , Just privateKey)]
-                   , onCertificatesRecv = const $ return CertificateUsageAccept
-                   , roleParams         = Client $ ClientParams{
-                            clientWantSessionResume    = Nothing
-                          , clientUseMaxFragmentLength = Nothing
-                          , clientUseServerName        = Nothing
-                          , onCertificateRequest       = \x -> return [(cert , Just privateKey)]
-                          }
-                   }
+apnsHost :: APNSConfig -> String
+apnsHost config = case environment config of
+  Development -> cDEVELOPMENT_URL
+  Production  -> cPRODUCTION_URL
+  Local       -> cLOCAL_URL
+
+connParams :: String -> Credential -> ClientParams
+connParams host cred = ClientParams {
+      clientUseMaxFragmentLength = Nothing,
+      clientServerIdentification = (host, B.empty),
+      clientUseServerNameIndication = False,
+      clientWantSessionResume = Nothing,
+      clientShared = def {
+        sharedCredentials = Credentials [cred]
+      },
+      clientHooks = def {
+        onCertificateRequest = const $ return $ Just cred,
+        onServerCertificate = \ _ _ _ _ -> return []
+      },
+      clientSupported = def {
+        supportedCiphers = ciphersuite_all
+      }
+    }
 
 -- 'connectAPNS' starts a secure connection with APNS servers.
 connectAPNS :: APNSConfig -> IO Context
@@ -69,7 +76,7 @@ connectAPNS config = do
                     Local       -> connectTo cLOCAL_URL
                                            $ PortNumber $ fromInteger cLOCAL_PORT
         rng     <- RNG.makeSystem
-        ctx     <- contextNewOnHandle handle (connParams (apnsCertificate config) (apnsPrivateKey config)) rng
+        ctx     <- contextNewOnHandle handle (connParams (apnsHost config) (apnsCredential config)) rng
         handshake ctx
         return ctx
 
@@ -224,7 +231,7 @@ connectFeedBackAPNS config = do
                     Local       -> connectTo cLOCAL_FEEDBACK_URL
                                            $ PortNumber $ fromInteger cLOCAL_FEEDBACK_PORT
         rng     <- RNG.makeSystem
-        ctx     <- contextNewOnHandle handle (connParams (apnsCertificate config) (apnsPrivateKey config)) rng
+        ctx     <- contextNewOnHandle handle (connParams (apnsHost config) (apnsCredential config)) rng
         handshake ctx
         return ctx
 
