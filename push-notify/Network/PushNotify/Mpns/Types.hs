@@ -20,7 +20,7 @@ module Network.PushNotify.Mpns.Types
     ) where
 
 import Network.PushNotify.Mpns.Constants
-import Network.TLS                      (PrivateKey)
+import Network.TLS                      (Credentials (..))
 import Data.Certificate.X509            (X509)
 import Data.Default
 import Data.Text
@@ -35,18 +35,16 @@ import qualified Data.HashSet           as HS
 --
 -- For loading the certificate and privateKey you can use: 'Network.TLS.Extra.fileReadCertificate' and 'Network.TLS.Extra.fileReadPrivateKey' .
 data MPNSConfig = MPNSConfig{
-        numRet          :: Int        -- ^ Number of attemps to send the message to the server.
-    ,   useSecure       :: Bool       -- ^ To set a secure connection (HTTPS).
-    ,   mpnsCertificate :: X509       -- ^ Certificate (only necessary for secure connections).
-    ,   mpnsPrivatekey  :: PrivateKey -- ^ Private key (only necessary for secure connections).
-    }   deriving Show
+        numRet          :: Int         -- ^ Number of attemps to send the message to the server.
+    ,   useSecure       :: Bool        -- ^ To set a secure connection (HTTPS).
+    ,   mpnsCredentials :: Credentials -- ^ Security credentials
+    }
 
 instance Default MPNSConfig where
     def = MPNSConfig{
         numRet          = 5
     ,   useSecure       = False
-    ,   mpnsCertificate = undefined
-    ,   mpnsPrivatekey  = undefined
+    ,   mpnsCredentials = undefined
     }
 
 -- | 'DeviceURI' is an unique identifier of an app/device, provided by MPNS.

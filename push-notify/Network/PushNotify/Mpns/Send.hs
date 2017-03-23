@@ -57,7 +57,7 @@ newManagerMPNS cnfg = case useSecure cnfg of
 retrySettingsMPNS = RetrySettings {
     backoff     = True
 ,   baseDelay   = 100
-,   numRetries  = limitedRetries 1
+,   numRetries  = limitRetries 1
 }
 
 -- | 'sendMPNS' sends the message to a MPNS Server.
@@ -115,7 +115,7 @@ send manager cnfg msg deviceUri = runResourceT $ do
 retry :: (MonadBaseControl IO m,MonadResource m)
       => Request -> Manager -> Int -> m MPNSinfo
 retry req manager numret = do
-        response <- retrying (retrySettingsMPNS{numRetries = limitedRetries numret}) ifRetry $ http req manager
+        response <- retrying (retrySettingsMPNS{numRetries = limitRetries numret}) ifRetry $ http req manager
         responseBody response $$+- return ()
         if ifRetry response
           then CE.throw $ StatusCodeException (responseStatus response) (responseHeaders response) (responseCookieJar response)

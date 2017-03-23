@@ -37,7 +37,21 @@ import qualified Data.HashMap.Strict    as HM
 import qualified Control.Exception      as CE
 import qualified Crypto.Random.AESCtr   as RNG
 import Network
-import Network.TLS
+import Network.TLS ( Credential
+                   , Credentials(..)
+                   , ClientParams(..)
+                   , sharedCredentials
+                   , onCertificateRequest
+                   , onServerCertificate
+                   , supportedCiphers
+                   , Context
+                   , contextNewOnHandle
+                   , handshake
+                   , contextClose
+                   , bye
+                   , recvData
+                   , sendData
+                   )
 import Network.TLS.Extra                (ciphersuite_all)
 import System.Timeout
 
@@ -66,8 +80,8 @@ connParams host cred = ClientParams {
     }
 
 -- 'connectAPNS' starts a secure connection with APNS servers.
-connectAPNS :: APNSConfig -> IO Context
-connectAPNS config = do
+connectAPNS :: APNSConfig -> RetryStatus -> IO Context
+connectAPNS config _ = do
         handle  <- case environment config of
                     Development -> connectTo cDEVELOPMENT_URL
                                            $ PortNumber $ fromInteger cDEVELOPMENT_PORT
@@ -75,8 +89,7 @@ connectAPNS config = do
                                            $ PortNumber $ fromInteger cPRODUCTION_PORT
                     Local       -> connectTo cLOCAL_URL
                                            $ PortNumber $ fromInteger cLOCAL_PORT
-        rng     <- RNG.makeSystem
-        ctx     <- contextNewOnHandle handle (connParams (apnsHost config) (apnsCredential config)) rng
+        ctx     <- contextNewOnHandle handle (connParams (apnsHost config) (apnsCredential config))
         handshake ctx
         return ctx
 
@@ -230,8 +243,7 @@ connectFeedBackAPNS config = do
                                            $ PortNumber $ fromInteger cPRODUCTION_FEEDBACK_PORT
                     Local       -> connectTo cLOCAL_FEEDBACK_URL
                                            $ PortNumber $ fromInteger cLOCAL_FEEDBACK_PORT
-        rng     <- RNG.makeSystem
-        ctx     <- contextNewOnHandle handle (connParams (apnsHost config) (apnsCredential config)) rng
+        ctx     <- contextNewOnHandle handle (connParams (apnsHost config) (apnsCredential config))
         handshake ctx
         return ctx
 

@@ -1,6 +1,6 @@
 -- GSoC 2013 - Communicating with mobile devices.
 
-{-# LANGUAGE FlexibleContexts , OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts , OverloadedStrings, PackageImports #-}
 
 -- | This Module define the main data types for sending Push Notifications through Google Cloud Messaging.
 module Network.PushNotify.Gcm.Types
@@ -15,14 +15,13 @@ module Network.PushNotify.Gcm.Types
 
 
 import Network.PushNotify.Gcm.Constants
-import Control.Monad.Writer
+import "mtl" Control.Monad.Writer
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.HashSet           as HS
 import Data.Aeson.Types
 import Data.Default
-import Data.Monoid
 import Data.Text
-
+import Control.Applicative 
 
 -- | 'GCMHttpConfig' represents the main necessary information for sending notifications through GCM.
 data GCMHttpConfig = GCMHttpConfig
@@ -108,12 +107,25 @@ ifNotDef label f msg = if f def /= f msg
                         then tell [(label .= (f msg))]
                         else tell []
 
+
+instance FromJSON GCMmessage where
+    parseJSON = withObject "FromJSON GCMmessage" $ \obj 
+         -> GCMmessage
+        <$> (HS.fromList <$> obj .: cREGISTRATION_IDS)
+        <*> obj .:? cCOLLAPSE_KEY
+        <*> obj .:? cDATA
+        <*> obj .:? cDELAY_WHILE_IDLE .!= False
+        <*> obj .:? cTIME_TO_LIVE 
+        <*> obj .:? cRESTRICTED_PACKAGE_NAME
+        <*> obj .:? cDRY_RUN .!= False
+
+
 instance ToJSON GCMmessage where
     toJSON msg = object $ execWriter $ do
-                                         ifNotDef cREGISTRATION_IDS (HS.toList . registration_ids) msg
-                                         ifNotDef cTIME_TO_LIVE time_to_live msg
-                                         ifNotDef cDATA data_object msg
-                                         ifNotDef cCOLLAPSE_KEY collapse_key msg
-                                         ifNotDef cRESTRICTED_PACKAGE_NAME restricted_package_name msg
-                                         ifNotDef cDELAY_WHILE_IDLE delay_while_idle msg
-                                         ifNotDef cDRY_RUN dry_run msg
+      ifNotDef cREGISTRATION_IDS (HS.toList . registration_ids) msg
+      ifNotDef cTIME_TO_LIVE time_to_live msg
+      ifNotDef cDATA data_object msg
+      ifNotDef cCOLLAPSE_KEY collapse_key msg
+      ifNotDef cRESTRICTED_PACKAGE_NAME restricted_package_name msg
+      ifNotDef cDELAY_WHILE_IDLE delay_while_idle msg
+      ifNotDef cDRY_RUN dry_run msg

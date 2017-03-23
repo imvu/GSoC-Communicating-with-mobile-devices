@@ -25,14 +25,12 @@ import Control.Monad.IO.Class           (liftIO)
 import Control.Monad.Trans.Control      (MonadBaseControl)
 import Control.Monad.Trans.Resource     (MonadResource,runResourceT)
 import Control.Retry
+import Data.Monoid ((<>))
 import Network.HTTP.Types
 import Network.HTTP.Conduit
 
-retrySettingsGCM = RetrySettings {
-    backoff     = True
-,   baseDelay   = 100
-,   numRetries  = limitedRetries 1
-}
+retrySettingsGCM :: RetryPolicy
+retrySettingsGCM = limitRetries 1 <> exponentialBackoff 100
 
 -- | 'sendGCM' sends the message to a GCM Server.
 sendGCM :: Manager -> GCMHttpConfig -> GCMmessage -> IO GCMresult
@@ -54,8 +52,8 @@ sendGCM manager cnfg msg = runResourceT $ do
 retry :: (MonadBaseControl IO m,MonadResource m)
       => Request -> Manager -> Int -> GCMmessage -> m GCMresult
 retry req manager numret msg = do
-        response <- retrying (retrySettingsGCM{numRetries = limitedRetries numret})
-                             ifRetry $ http req manager
+        response <- retrying (retrySettingsGCM <> limitRetries numret)
+                             ifRetry $ const (http req manager)
         if (statusCode $ responseStatus response) >= 500
           then
             case Prelude.lookup (fromString $ unpack cRETRY_AFTER) (responseHeaders response) of
@@ -72,7 +70,7 @@ retry req manager numret msg = do
               resValue <- responseBody response $$+- sinkParser json
               liftIO $ handleSucessfulResponse resValue msg
 
-        where ifRetry x = if (statusCode $ responseStatus x) >= 500
+        where ifRetry _ x = return $ if (statusCode $ responseStatus x) >= 500
                             then case Prelude.lookup (fromString $ unpack cRETRY_AFTER) (responseHeaders x) of
                                     Nothing ->  True  -- Internal Server error, and don't specify time to wait
                                     Just t  ->  False -- Internal Server error, and specify time to wait

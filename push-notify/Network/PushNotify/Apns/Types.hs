@@ -1,6 +1,7 @@
 -- GSoC 2013 - Communicating with mobile devices.
 
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
 
 -- | This Module define the main data types for sending Push Notifications through Apple Push Notification Service.
 
@@ -25,7 +26,7 @@ import Control.Concurrent.STM.TChan
 import Control.Monad.Writer
 import Control.Retry
 import Data.Aeson.Types
-import Data.Certificate.X509                (X509)
+-- import Data.Certificate.X509                (X509)
 import Data.Default
 import qualified Data.HashMap.Strict        as HM
 import qualified Data.HashSet               as HS
@@ -46,7 +47,7 @@ data APNSConfig = APNSConfig
     {   apnsCredential   :: Credential -- ^ Credentials provided by Apple.
     ,   environment       :: Env           -- ^ One of the possible environments.
     ,   timeoutLimit      :: Int           -- ^ The time to wait for a server response. (microseconds)
-    ,   apnsRetrySettings :: RetrySettings -- ^ How to retry to connect to APNS servers.
+    ,   apnsRetrySettings :: RetryPolicy   -- ^ How to retry to connect to APNS servers.
     }
 
 instance Default APNSConfig where
@@ -54,11 +55,7 @@ instance Default APNSConfig where
         apnsCredential    = undefined
     ,   environment       = Development
     ,   timeoutLimit      = 200000
-    ,   apnsRetrySettings = RetrySettings {
-                                backoff     = True
-                            ,   baseDelay   = 200
-                            ,   numRetries  = limitedRetries 5
-                            }
+    ,   apnsRetrySettings = limitRetries 5 <> constantDelay 200
     }
 
 data APNSManager = APNSManager
